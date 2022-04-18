@@ -27,7 +27,7 @@ def get_coordinates(args):
     return original_coordinates, new_coordinates, pallet
 
 
-def calculation(i, args):
+def calculation(image, args):
     match = {}
     pix = []
     h = []
