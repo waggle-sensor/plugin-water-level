@@ -6,7 +6,7 @@ from PIL import Image
 
 import time
 
-from waggle import plugin
+from waggle import Plugin
 from waggle.data.vision import VideoCapture, resolve_device
 from waggle.data.timestamp import get_timestamp
 
@@ -122,18 +122,20 @@ def calculation(i, args):
 
 def run(args):
     camera = Camera(args.stream)
-    sample = camera.snapshot()
-    image = sample.data
-    timestamp = sample.timestamp
+    while True:
+        sample = camera.snapshot()
+        image = sample.data
+        timestamp = sample.timestamp
 
-    result_value, result_image = calculation(image, args)
-    print(result_value)
+        result_value, result_image = calculation(image, args)
+        print(result_value)
     
-    plugin.publish(TOPIC_WATERLEVEL, result_value, timestamp=timestamp)
-    print(f"Water level: {result_value} at time: {timestamp}")
-    cv2.imwrite('watermarker.jpg', result_image)
-    plugin.upload_file('watermarker.jpg')
-    print('saved')
+        with Plugin() as plugin:
+            plugin.publish(TOPIC_WATERLEVEL, result_value, timestamp=timestamp)
+            print(f"Water level: {result_value} at time: {timestamp}")
+            cv2.imwrite('watermarker.jpg', result_image)
+            plugin.upload_file('watermarker.jpg')
+            print('saved')
 
 
 if __name__ == '__main__':
