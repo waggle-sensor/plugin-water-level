@@ -6,11 +6,11 @@ from PIL import Image
 
 import time
 
-from waggle import Plugin
-from waggle.data.vision import VideoCapture, resolve_device
-from waggle.data.timestamp import get_timestamp
+#from waggle import Plugin
+#from waggle.data.vision import VideoCapture, resolve_device
+#from waggle.data.timestamp import get_timestamp
 
-TOPIC_WATERLEVEL = "env.water.level"
+#TOPIC_WATERLEVEL = "env.water.level"
 
 def get_coordinates(args):
     original_coordinates = []
@@ -40,14 +40,11 @@ def calculation(i, args):
 
     original_coordinates, new_coordinates, pallet = get_coordinates(args)
 
-    image = cv2.imread(i)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
     pts1 = np.float32(original_coordinates)
     pts2 = np.float32(new_coordinates)
     M = cv2.getPerspectiveTransform(pts1, pts2)
     dst = cv2.warpPerspective(image, M, pallet[0])
-    
+
 
 
     hsv = cv2.cvtColor(dst, cv2.COLOR_RGB2HSV)
@@ -69,12 +66,12 @@ def calculation(i, args):
         closing = cv2.morphologyEx(new_tophat_image, cv2.MORPH_CLOSE, kernel2)
     else:
         graydst = cv2.cvtColor(dst, cv2.COLOR_RGB2GRAY)
-        
+
         ret,new_tophat_image = cv2.threshold(graydst,85,255,cv2.THRESH_BINARY)
 
         kernel2 = np.ones((4,4), np.int8)
         closing = cv2.morphologyEx(new_tophat_image, cv2.MORPH_CLOSE, kernel2)
-        
+
 
     wp = []
     for i in range(len(closing)):
@@ -121,22 +118,29 @@ def calculation(i, args):
 
 
 def run(args):
-    camera = Camera(args.stream)
-    while True:
-        sample = camera.snapshot()
-        image = sample.data
-        timestamp = sample.timestamp
+    #camera = Camera(args.stream)
+    name = args.image + '*.jpg'
+    files = glob.glob(name)
+    #while True:
+    for i in files:
+        #sample = camera.snapshot()
+        #image = sample.data
+        #timestamp = sample.timestamp
+        image = cv2.imread(i)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        imagestamp = time.time()
 
         result_value, result_image = calculation(image, args)
         print(result_value)
-    
+        cv2.imwrite('watermarker.jpg', result_image)
+        '''
         with Plugin() as plugin:
             plugin.publish(TOPIC_WATERLEVEL, result_value, timestamp=timestamp)
             print(f"Water level: {result_value} at time: {timestamp}")
             cv2.imwrite('watermarker.jpg', result_image)
             plugin.upload_file('watermarker.jpg')
             print('saved')
-
+        '''
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -168,6 +172,10 @@ if __name__ == '__main__':
         '-pallet', dest='pallet',
         action='store', type=str, default="100,780",
         help='X,Y Length of new pallet for perspective transform')
+    parser.add_argument(
+        '-image', dest='image',
+        action='store', type=str,
+        help='image path')
     run(parser.parse_args())
 
 
